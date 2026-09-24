@@ -1,0 +1,145 @@
+.job-create-container {
+  padding: 40px 0;
+  min-height: 80vh;
+}
+
+.create-card {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  max-width: 700px;
+  margin: 0 auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.create-card h1 {
+  margin-bottom: 8px;
+  font-size: 28px;
+  color: #1a1a1a;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: #999;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 200px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.form-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.form-actions .primary {
+  background: #0066cc;
+  color: white;
+}
+
+.form-actions .primary:hover:not(:disabled) {
+  background: #0052a3;
+}
+
+.form-actions .primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.form-actions .secondary {
+  background: #f5f7fa;
+  color: #0066cc;
+  border: 1px solid #d1d5db;
+}
+
+.form-actions .secondary:hover {
+  background: #e8ecf1;
+}
+
+.pricing-info {
+  background: #f0f6ff;
+  padding: 20px;
+  border-radius: 6px;
+  border-left: 4px solid #0066cc;
+}
+
+.pricing-info h3 {
+  color: #0066cc;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.pricing-info p {
+  color: #333;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .create-card {
+    padding: 20px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+}
