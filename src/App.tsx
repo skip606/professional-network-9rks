@@ -1,80 +1,42 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
-import Navbar from './components/Navbar'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Home from './pages/Home'
-import Profile from './pages/Profile'
-import ProfileEdit from './pages/ProfileEdit'
-import JobBoard from './pages/JobBoard'
-import JobCreate from './pages/JobCreate'
-import Messages from './pages/Messages'
+import { useEffect, useMemo, useState } from 'react'
+import './index.css'
 
-interface User {
-  id: string
-  email: string
-  username: string
-  profile: {
-    firstName: string
-    lastName: string
-    title: string
-    bio: string
-    location: string
-    skills: string[]
-    profileImageUrl?: string
-  }
+type User = { id:string; name:string; role:string; company:string; location:string; skills:string[]; bio:string; avatar:string; connected?:boolean }
+type Post = { id:number; author:User; body:string; tag:string; likes:number; comments:number; time:string; liked?:boolean }
+type Message = { id:number; from:string; text:string; time:string }
+
+const me:User = { id:'me', name:'Ronnie Hodges', role:'Founder & Product Builder', company:'TGE SC.', location:'United States', skills:['Product Strategy','Cybersecurity','Automation'], bio:'Building practical tools for people who ship.', avatar:'RH' }
+const people:User[] = [
+ {id:'maya',name:'Maya Chen',role:'Senior Product Designer',company:'Northstar Labs',location:'Austin, TX',skills:['UX Research','Design Systems','Figma'],bio:'Designing calmer software for complex work.',avatar:'MC'},
+ {id:'jordan',name:'Jordan Brooks',role:'Engineering Manager',company:'Orbit Systems',location:'Chicago, IL',skills:['TypeScript','Platform','Leadership'],bio:'I help teams build reliable products.',avatar:'JB'},
+ {id:'alex',name:'Alex Rivera',role:'Growth Consultant',company:'Independent',location:'Denver, CO',skills:['Go-to-Market','SEO','B2B'],bio:'Turning useful products into obvious choices.',avatar:'AR'}
+]
+const seedPosts:Post[] = [
+ {id:1,author:people[0],body:'The best professional networks should reward useful conversations, not endless engagement loops. What are you building this week?',tag:'Product',likes:24,comments:8,time:'18m'},
+ {id:2,author:people[1],body:'Small reminder: a clear README is a product feature. Your future self and your users will thank you.',tag:'Engineering',likes:41,comments:12,time:'2h'},
+ {id:3,author:people[2],body:'Hiring managers: show the problem before the perks. Great people want to know what they get to solve.',tag:'Careers',likes:17,comments:4,time:'5h'}
+]
+
+export default function App(){
+ const [authed,setAuthed]=useState(()=>localStorage.getItem('pn-auth')==='1')
+ const [tab,setTab]=useState('feed'); const [query,setQuery]=useState(''); const [dark,setDark]=useState(()=>localStorage.getItem('pn-dark')==='1')
+ const [posts,setPosts]=useState<Post[]>(()=>JSON.parse(localStorage.getItem('pn-posts')||'null')||seedPosts)
+ const [connections,setConnections]=useState<string[]>(()=>JSON.parse(localStorage.getItem('pn-connections')||'[]'))
+ const [messages,setMessages]=useState<Message[]>(()=>JSON.parse(localStorage.getItem('pn-messages')||'[]'))
+ const [composer,setComposer]=useState(''); const [activeChat,setActiveChat]=useState('maya'); const [toast,setToast]=useState('')
+ useEffect(()=>{document.documentElement.dataset.theme=dark?'dark':'light';localStorage.setItem('pn-dark',String(dark))},[dark])
+ useEffect(()=>{localStorage.setItem('pn-posts',JSON.stringify(posts));localStorage.setItem('pn-connections',JSON.stringify(connections));localStorage.setItem('pn-messages',JSON.stringify(messages))},[posts,connections,messages])
+ const filtered=useMemo(()=>people.filter(p=>(p.name+' '+p.role+' '+p.company+' '+p.skills.join(' ')).toLowerCase().includes(query.toLowerCase())),[query])
+ const notify=(s:string)=>{setToast(s);setTimeout(()=>setToast(''),2400)}
+ if(!authed) return <Auth onEnter={()=>{localStorage.setItem('pn-auth','1');setAuthed(true)}} />
+ const connect=(id:string)=>{setConnections(x=>x.includes(id)?x.filter(v=>v!==id):[...x,id]);notify(connections.includes(id)?'Connection removed':'Connection request sent')}
+ const publish=()=>{if(!composer.trim())return;setPosts(p=>[{id:Date.now(),author:me,body:composer,tag:'Update',likes:0,comments:0,time:'now'},...p]);setComposer('');notify('Post published')}
+ const send=(text:string)=>{if(!text.trim())return;setMessages(m=>[...m,{id:Date.now(),from:'me',text,time:'now'}]);notify('Message sent')}
+ return <div className="app"><aside className="sidebar"><div className="brand"><span className="brand-mark">N</span><span>network</span></div><div className="profile-mini"><div className="avatar">RH</div><div><b>{me.name}</b><small>{me.role}</small></div></div><nav>{[['feed','⌂','Home'],['discover','◎','Discover'],['jobs','▣','Jobs'],['messages','✉','Messages'],['profile','◉','My profile']].map(([id,icon,label])=><button className={tab===id?'active':''} onClick={()=>setTab(id)} key={id}><i>{icon}</i>{label}{id==='messages'&&messages.length>0?<em>{messages.length}</em>:null}</button>)}</nav><div className="side-bottom"><button onClick={()=>setDark(!dark)}><i>{dark?'☀':'◐'}</i>{dark?'Light mode':'Dark mode'}</button><button onClick={()=>{localStorage.clear();setAuthed(false)}}><i>↪</i>Sign out</button></div></aside><main><header><div className="mobile-brand"><span className="brand-mark">N</span> network</div><div className="search"><span>⌕</span><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search people, roles, companies..." /></div><button className="icon-btn" onClick={()=>notify('You are all caught up')}>♧</button><div className="avatar small">RH</div></header><div className="content">{tab==='feed'&&<Feed posts={posts} composer={composer} setComposer={setComposer} publish={publish} setPosts={setPosts} notify={notify}/>} {tab==='discover'&&<Discover people={filtered} connections={connections} connect={connect}/>} {tab==='jobs'&&<Jobs notify={notify}/>} {tab==='messages'&&<Messages messages={messages} active={activeChat} setActive={setActiveChat} send={send}/>} {tab==='profile'&&<Profile connections={connections} posts={posts.filter(p=>p.author.id==='me')} notify={notify}/>}</div></main>{toast&&<div className="toast">✓ {toast}</div>}</div>
 }
-
-export default function App() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      // Validate token by attempting a protected request
-      const user = localStorage.getItem('user')
-      if (user) {
-        setUser(JSON.parse(user))
-      }
-    }
-    setLoading(false)
-  }, [])
-
-  const handleLogin = (token: string, userData: User) => {
-    localStorage.setItem('token', token)
-    localStorage.setItem('user', JSON.stringify(userData))
-    setUser(userData)
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    setUser(null)
-  }
-
-  const handleUpdateProfile = (updated: User) => {
-    localStorage.setItem('user', JSON.stringify(updated))
-    setUser(updated)
-  }
-
-  if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Loading...</div>
-  }
-
-  return (
-    <BrowserRouter>
-      {user && <Navbar user={user} onLogout={handleLogout} />}
-      <Routes>
-        <Route path="/login" element={user ? <Navigate to="/" /> : <Login onLogin={handleLogin} />} />
-        <Route path="/register" element={user ? <Navigate to="/" /> : <Register onLogin={handleLogin} />} />
-        <Route path="/" element={user ? <Home user={user} /> : <Navigate to="/login" />} />
-        <Route path="/profile/:username" element={user ? <Profile user={user} /> : <Navigate to="/login" />} />
-        <Route path="/profile/edit" element={user ? <ProfileEdit user={user} onUpdate={handleUpdateProfile} /> : <Navigate to="/login" />} />
-        <Route path="/jobs" element={user ? <JobBoard user={user} /> : <Navigate to="/login" />} />
-        <Route path="/jobs/create" element={user ? <JobCreate user={user} /> : <Navigate to="/login" />} />
-        <Route path="/messages" element={user ? <Messages user={user} /> : <Navigate to="/login" />} />
-      </Routes>
-    </BrowserRouter>
-  )
-}
+function Auth({onEnter}:{onEnter:()=>void}){return <div className="auth"><div className="auth-card"><div className="brand centered"><span className="brand-mark">N</span><span>network</span></div><h1>Work better<br/><span>together.</span></h1><p>A professional network for people who build, lead, and make things happen.</p><button className="primary wide" onClick={onEnter}>Enter the network <span>→</span></button><small>By continuing, you agree to our community guidelines.</small></div><div className="auth-art"><div className="orb one"/><div className="orb two"/><div className="quote">“The right conversation<br/>changes everything.”</div></div></div>}
+function Feed({posts,composer,setComposer,publish,setPosts,notify}:{posts:Post[];composer:string;setComposer:(s:string)=>void;publish:()=>void;setPosts:React.Dispatch<React.SetStateAction<Post[]>>;notify:(s:string)=>void}){return <section><div className="page-head"><div><p className="eyebrow">YOUR SPACE</p><h2>Good morning, Ronnie.</h2><p className="muted">Here’s what’s happening in your network.</p></div><button className="primary" onClick={()=>document.getElementById('composer')?.focus()}>＋ Share an update</button></div><div className="grid"><div><div className="composer card"><div className="avatar">RH</div><div className="composer-body"><textarea id="composer" value={composer} onChange={e=>setComposer(e.target.value)} placeholder="What are you working on?"/><div className="composer-foot"><span>◉ Add to your network</span><button className="primary" disabled={!composer.trim()} onClick={publish}>Post</button></div></div></div>{posts.map(post=><article className="post card" key={post.id}><div className="post-top"><div className="avatar">{post.author.avatar}</div><div><b>{post.author.name}</b><small>{post.author.role} at {post.author.company} · {post.time}</small></div><span className="tag">{post.tag}</span></div><p>{post.body}</p><div className="post-actions"><button onClick={()=>setPosts(ps=>ps.map(x=>x.id===post.id?{...x,liked:!x.liked,likes:x.likes+(x.liked?-1:1)}:x))}>{post.liked?'♥':'♡'} {post.likes}</button><button onClick={()=>notify('Comments are coming next')}>◌ {post.comments}</button><button onClick={()=>notify('Post link copied')}>↗ Share</button></div></article>)}</div><aside className="right-rail"><div className="card rail"><h3>People you may know</h3>{people.slice(0,2).map(p=><div className="suggest" key={p.id}><div className="avatar">{p.avatar}</div><div><b>{p.name}</b><small>{p.role}</small></div><button onClick={()=>notify('Connection request sent')}>＋</button></div>)}<button className="text-btn">See all suggestions →</button></div><div className="card rail"><h3>Trending conversations</h3>{['Building in public','Remote leadership','AI in the workplace'].map((x,i)=><div className="trend" key={x}><small>0{i+1} · Trending</small><b>{x}</b><span>{12+i*7} conversations</span></div>)}</div></aside></div></section>}
+function Discover({people,connections,connect}:{people:User[];connections:string[];connect:(id:string)=>void}){return <section><div className="page-head"><div><p className="eyebrow">DISCOVER</p><h2>Find your people.</h2><p className="muted">Build a network that’s actually useful.</p></div><button className="secondary">Filter ▾</button></div><div className="people-grid">{people.map(p=><div className="person card" key={p.id}><div className="cover"/><div className="avatar large">{p.avatar}</div><h3>{p.name}</h3><p className="muted">{p.role} at {p.company}</p><p className="location">⌖ {p.location}</p><p className="bio">{p.bio}</p><div className="skills">{p.skills.map(s=><span key={s}>{s}</span>)}</div><button className={connections.includes(p.id)?'secondary wide':'primary wide'} onClick={()=>connect(p.id)}>{connections.includes(p.id)?'✓ Connected':'＋ Connect'}</button></div>)}</div></section>}
+function Jobs({notify}:{notify:(s:string)=>void}){const jobs=[['Senior Frontend Engineer','Northstar Labs','Remote · $140k–$175k','Today'],['Product Designer','Orbit Systems','Chicago, IL · $110k–$145k','2d'],['Growth Lead','Common Ground','New York, NY · $120k–$160k','4d']];return <section><div className="page-head"><div><p className="eyebrow">OPPORTUNITIES</p><h2>Work worth doing.</h2><p className="muted">Roles from teams building the future.</p></div><button className="primary" onClick={()=>notify('Job posting flow opened')}>＋ Post a job</button></div><div className="job-list">{jobs.map(j=><div className="job card" key={j[0]}><div className="company-logo">{j[1][0]}</div><div className="job-main"><small>{j[1]} · {j[3]}</small><h3>{j[0]}</h3><p>{j[2]}</p><div><span className="tag">Full-time</span><span className="tag">Engineering</span></div></div><button className="secondary" onClick={()=>notify('Application started')}>View role →</button></div>)}</div></section>}
+function Messages({messages,active,setActive,send}:{messages:Message[];active:string;setActive:(s:string)=>void;send:(s:string)=>void}){const [draft,setDraft]=useState('');return <section><div className="page-head"><div><p className="eyebrow">MESSAGES</p><h2>Keep the conversation going.</h2></div></div><div className="messages card"><div className="chat-list">{people.map(p=><button className={active===p.id?'chat active':''} onClick={()=>setActive(p.id)} key={p.id}><div className="avatar">{p.avatar}</div><div><b>{p.name}</b><small>{messages.find(m=>m.from===p.id)?.text||'Start a conversation'}</small></div><span>›</span></button>)}</div><div className="chat-window"><div className="chat-head"><div className="avatar">{people.find(p=>p.id===active)?.avatar}</div><div><b>{people.find(p=>p.id===active)?.name}</b><small>Usually replies within a day</small></div></div><div className="chat-body">{messages.filter(m=>m.from==='me'||m.from===active).map(m=><div className={m.from==='me'?'bubble mine':'bubble'} key={m.id}>{m.text}<small>{m.time}</small></div>)}{messages.filter(m=>m.from==='me'||m.from===active).length===0&&<div className="empty-chat">Say hello. Good things start small.</div>}</div><div className="chat-input"><input value={draft} onChange={e=>setDraft(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){send(draft);setDraft('')}}} placeholder="Write a message..."/><button onClick={()=>{send(draft);setDraft('')}}>↑</button></div></div></div></section>}
+function Profile({connections,posts,notify}:{connections:string[];posts:Post[];notify:(s:string)=>void}){return <section><div className="profile-hero card"><div className="profile-cover"/><div className="profile-main"><div className="avatar huge">RH</div><div className="profile-copy"><h2>Ronnie Hodges</h2><p>Founder & Product Builder at TGE SC.</p><span>⌖ United States · 248 connections</span></div><button className="secondary" onClick={()=>notify('Profile editor opened')}>Edit profile</button></div></div><div className="profile-columns"><div className="card panel"><h3>About</h3><p>Building practical tools for people who ship. Focused on local-first software, useful automation, and making complex work feel simple.</p><h3>Skills</h3><div className="skills">{me.skills.map(s=><span key={s}>{s}</span>)}</div></div><div className="card panel"><h3>Recent activity</h3>{posts.length?posts.map(p=><p className="activity" key={p.id}><b>You posted an update</b><small>{p.body.slice(0,90)}...</small></p>):<p className="muted">Your activity will appear here.</p>}</div></div></section>}
